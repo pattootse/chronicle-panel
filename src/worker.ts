@@ -3,7 +3,6 @@
 import { decodeEncounterPayloads, type EncounterPayload } from "@emyrk/chronicle-panel-sdk/v1/events";
 import { CombatantInfoSchema, DamageSchema, HealSchema, SpellGoSchema, UnitClassificationSchema, type CombatantInfo } from "@emyrk/chronicle-panel-sdk/v1/protobuf";
 import { DamageAccumulator, resolveDamageEvents, type DamageRow, type ResolvedDamageEvent } from "./damage";
-import { buildCastTimelines, type CastTimelineEncounter, type CastTimelinePlayer } from "./castTimeline";
 import { buildFirstCasts, type FirstCastEncounter } from "./firstCasts";
 import { buildGearRarityRows, latestGearForSelectedEncounters, uniqueGearItemIds, type GearPlayerSnapshot } from "./gearRarity";
 
@@ -15,7 +14,7 @@ interface InitMessage {
   classificationData?: ArrayBuffer;
   healData?: ArrayBuffer;
   selectedEncounterIds: string[];
-  players: Record<string, CastTimelinePlayer>;
+  players: Record<string, { name: string }>;
   units: Record<string, { name: string; owner?: string | null }>;
   sync: { enabled: boolean; timestampMs: number | null };
 }
@@ -51,7 +50,6 @@ let damageEvents: ResolvedDamageEvent[] = [];
 let damageAccumulator = new DamageAccumulator();
 let casts: CastRow[] = [];
 let firstCasts: FirstCastEncounter[] = [];
-let castTimelines: CastTimelineEncounter[] = [];
 let gearPayloads: EncounterPayload<CombatantInfo>[] = [];
 let gearPlayers: GearPlayerSnapshot[] = [];
 let gearRequestId = 0;
@@ -88,14 +86,6 @@ function publish(): void {
     return;
   }
 
-  if (panelId === "cast-timeline") {
-    self.postMessage({
-      type: "cast-timeline-result",
-      encounters: castTimelines.filter((encounter) => selected.has(encounter.encounterId)),
-    });
-    return;
-  }
-
   self.postMessage({
     type: "casts-result",
     rows: casts.filter((cast) => selected.has(cast.encounterId)),
@@ -120,8 +110,8 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
     selected = new Set(message.selectedEncounterIds);
     sync = message.sync;
     if (panelId === "gear-rarity") requestGearMetadata();
-    // First casts and cast timelines ignore replay time; the views dim casts past the cursor.
-    else if (panelId === "first-casts" || panelId === "cast-timeline") {
+    // First casts ignore replay time; the view dims rows past the cursor.
+    else if (panelId === "first-casts") {
       if (selectionChanged) publish();
     }
     else publish();
@@ -138,8 +128,6 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
       message.healData ? decodeEncounterPayloads(HealSchema, message.healData) : [],
       message.players,
     );
-  } else if (panelId === "cast-timeline") {
-    castTimelines = buildCastTimelines(decodeEncounterPayloads(SpellGoSchema, message.data), message.players);
   } else if (message.streamType === "damage") {
     damageEvents = resolveDamageEvents(
       decodeEncounterPayloads(DamageSchema, message.data),

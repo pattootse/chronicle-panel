@@ -22,7 +22,6 @@ One repository is a **panel library**. This repository publishes three panels fr
 | `gear-rarity` | `combatant_info` | Decode equipment, request batched item quality metadata, and sort rarity counts |
 | `replay-casts` | `spell_go` | Decode once, then follow Chronicle's replay timestamp without reprocessing |
 | `first-casts` | `damage`, `heal` | Each player's first effective cast per encounter, ordered by encounter offset |
-| `cast-timeline` | `spell_go` | Zoomable per-player swimlanes of every successful cast, colored by spell so repeating rotations stand out |
 
 Custom panels are trusted code. Installing one gives it access comparable to Chronicle's own frontend JavaScript.
 

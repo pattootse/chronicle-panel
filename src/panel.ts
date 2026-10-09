@@ -1,6 +1,4 @@
 import { formatElapsedTime } from "./time";
-import type { CastTimelineEncounter } from "./castTimeline";
-import { createCastTimelineView, type CastTimelineView } from "./castTimelineView";
 import type { DamageRow } from "./damage";
 import { formatOffset, type FirstCastEncounter } from "./firstCasts";
 import { GEAR_RARITIES, sortGearRarityRows, type GearRarityRow, type GearRaritySortDirection, type GearRaritySortKey } from "./gearRarity";
@@ -45,7 +43,6 @@ async function mountPanel(request: ChroniclePanelMountRequestV1): Promise<Chroni
   let gearSort = parseGearSort(snapshot.panel.option);
   let castRows: CastRow[] = [];
   let firstCastEncounters: FirstCastEncounter[] = [];
-  let castTimeline: CastTimelineView | null = null;
   let destroyed = false;
 
   const app = document.createElement("div");
@@ -60,8 +57,6 @@ async function mountPanel(request: ChroniclePanelMountRequestV1): Promise<Chroni
       : "spell_go";
 
   function renderError(message: string): void {
-    castTimeline?.destroy();
-    castTimeline = null;
     app.innerHTML = "";
     const error = document.createElement("div");
     error.className = "state error";
@@ -345,11 +340,6 @@ async function mountPanel(request: ChroniclePanelMountRequestV1): Promise<Chroni
     }
     if (event.data?.type === "damage-result") damageRows = event.data.rows as DamageRow[];
     if (event.data?.type === "first-casts-result") firstCastEncounters = event.data.encounters as FirstCastEncounter[];
-    if (event.data?.type === "cast-timeline-result") {
-      castTimeline ??= createCastTimelineView(app, snapshot);
-      castTimeline.setEncounters(event.data.encounters as CastTimelineEncounter[]);
-      return;
-    }
     if (event.data?.type === "casts-result") castRows = event.data.rows as CastRow[];
     if (event.data?.type === "gear-rarity-result") gearRows = event.data.rows as GearRarityRow[];
     render();
@@ -399,14 +389,11 @@ async function mountPanel(request: ChroniclePanelMountRequestV1): Promise<Chroni
         renderGear();
       } else if (panelId === "replay-casts") renderCasts();
       else if (panelId === "first-casts") renderFirstCasts();
-      else if (panelId === "cast-timeline") castTimeline?.setSnapshot(next);
     },
     destroy() {
       destroyed = true;
       for (const handle of damageBreakouts.values()) handle.close();
       damageBreakouts.clear();
-      castTimeline?.destroy();
-      castTimeline = null;
       worker.postMessage({ type: "dispose" });
       worker.terminate();
       app.remove();

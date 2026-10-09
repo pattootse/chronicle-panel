@@ -2930,94 +2930,6 @@ var DamageAccumulator = class {
   }
 };
 
-// src/castTimeline.ts
-function spellFor(cast) {
-  const id = cast.spellData?.id || null;
-  const name = cast.spellData?.name || (cast.itemID ? `Item ${cast.itemID}` : "Unknown spell");
-  return { id, name, key: id != null ? `id:${id}` : `name:${name}`, label: abbreviateSpell(name) };
-}
-function buildCastTimelines(payloads, players) {
-  const encounters = /* @__PURE__ */ new Map();
-  for (const payload of payloads) {
-    let encounter = encounters.get(payload.encounterId);
-    if (!encounter) {
-      encounter = {
-        firstTimestampMs: payload.firstTimestampMs,
-        lastTimestampMs: payload.firstTimestampMs,
-        spells: [],
-        spellIndex: /* @__PURE__ */ new Map(),
-        casts: /* @__PURE__ */ new Map()
-      };
-      encounters.set(payload.encounterId, encounter);
-    }
-    encounter.firstTimestampMs = Math.min(encounter.firstTimestampMs, payload.firstTimestampMs);
-    for (const cast of payload.events) {
-      const atMs = payload.firstTimestampMs + Number(cast.meta?.offsetMilli ?? 0n);
-      encounter.lastTimestampMs = Math.max(encounter.lastTimestampMs, atMs);
-      if (cast.meta?.isSynthetic) continue;
-      if (!cast.caster || !players[cast.caster]) continue;
-      const spell = spellFor(cast);
-      let spellIndex = encounter.spellIndex.get(spell.key);
-      if (spellIndex === void 0) {
-        spellIndex = encounter.spells.length;
-        encounter.spells.push(spell);
-        encounter.spellIndex.set(spell.key, spellIndex);
-      }
-      let casts2 = encounter.casts.get(cast.caster);
-      if (!casts2) {
-        casts2 = [];
-        encounter.casts.set(cast.caster, casts2);
-      }
-      casts2.push({ atMs, index: cast.meta?.index ?? 0, spell: spellIndex, target: cast.target ?? "" });
-    }
-  }
-  return [...encounters.entries()].map(([encounterId, encounter]) => ({
-    encounterId,
-    firstTimestampMs: encounter.firstTimestampMs,
-    lastTimestampMs: encounter.lastTimestampMs,
-    spells: disambiguateLabels(encounter.spells),
-    lanes: [...encounter.casts.entries()].map(([playerId, casts2]) => {
-      casts2.sort((a, b) => a.atMs - b.atMs || a.index - b.index);
-      const player = players[playerId];
-      return {
-        playerId,
-        name: player.name,
-        playerClass: player.class_name || player.class || null,
-        atMs: casts2.map((cast) => cast.atMs),
-        spell: casts2.map((cast) => cast.spell),
-        target: casts2.map((cast) => cast.target)
-      };
-    }).sort((a, b) => (a.playerClass ?? "~").localeCompare(b.playerClass ?? "~") || a.name.localeCompare(b.name))
-  })).sort((a, b) => a.firstTimestampMs - b.firstTimestampMs);
-}
-function abbreviateSpell(name) {
-  const words = name.match(/[A-Za-z0-9]+/g) ?? [];
-  if (words.length === 0) return "?";
-  if (words.length === 1) {
-    const word = words[0];
-    return word.charAt(0).toUpperCase() + word.slice(1, 2).toLowerCase();
-  }
-  return words.slice(0, 2).map((word) => word.charAt(0).toUpperCase()).join("");
-}
-function extendedLabel(name) {
-  const words = name.match(/[A-Za-z0-9]+/g) ?? [];
-  if (words.length < 2) return (words[0] ?? "?").slice(0, 3);
-  const [first, second] = words;
-  return first.charAt(0).toUpperCase() + first.charAt(1).toLowerCase() + second.charAt(0).toUpperCase();
-}
-function disambiguateLabels(spells) {
-  const namesByLabel = /* @__PURE__ */ new Map();
-  for (const spell of spells) {
-    const names = namesByLabel.get(spell.label) ?? /* @__PURE__ */ new Set();
-    names.add(spell.name);
-    namesByLabel.set(spell.label, names);
-  }
-  for (const spell of spells) {
-    if (namesByLabel.get(spell.label).size > 1) spell.label = extendedLabel(spell.name);
-  }
-  return spells;
-}
-
 // src/firstCasts.ts
 function considerEvents(encounters, payloads, kind, players) {
   for (const payload of payloads) {
@@ -3129,7 +3041,6 @@ var damageEvents = [];
 var damageAccumulator = new DamageAccumulator();
 var casts = [];
 var firstCasts = [];
-var castTimelines = [];
 var gearPayloads = [];
 var gearPlayers = [];
 var gearRequestId = 0;
@@ -3161,13 +3072,6 @@ function publish() {
     });
     return;
   }
-  if (panelId === "cast-timeline") {
-    self.postMessage({
-      type: "cast-timeline-result",
-      encounters: castTimelines.filter((encounter) => selected.has(encounter.encounterId))
-    });
-    return;
-  }
   self.postMessage({
     type: "casts-result",
     rows: casts.filter((cast) => selected.has(cast.encounterId))
@@ -3190,7 +3094,7 @@ self.onmessage = (event) => {
     selected = new Set(message.selectedEncounterIds);
     sync = message.sync;
     if (panelId === "gear-rarity") requestGearMetadata();
-    else if (panelId === "first-casts" || panelId === "cast-timeline") {
+    else if (panelId === "first-casts") {
       if (selectionChanged) publish();
     } else publish();
     return;
@@ -3204,8 +3108,6 @@ self.onmessage = (event) => {
       message.healData ? decodeEncounterPayloads(HealSchema, message.healData) : [],
       message.players
     );
-  } else if (panelId === "cast-timeline") {
-    castTimelines = buildCastTimelines(decodeEncounterPayloads(SpellGoSchema, message.data), message.players);
   } else if (message.streamType === "damage") {
     damageEvents = resolveDamageEvents(
       decodeEncounterPayloads(DamageSchema, message.data),
