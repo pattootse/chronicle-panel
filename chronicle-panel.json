@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "plugin": {
-    "id": "github:emyrk/chronicle-panel",
+    "id": "github:pattootse/chronicle-panel",
     "name": "Chronicle Panel Examples",
     "version": "1.5.0",
     "description": "Reference library containing multiple trusted Chronicle custom panels.",
