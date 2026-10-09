@@ -24,7 +24,7 @@
     "styles": {
       "path": "dist/panel.css",
       "sha256": "08024e9987cb77776ce61aa840a7fe260c7146301225e5305f63ecaa012ae254",
-      "size": 6558
+      "size": 6406
     }
   },
   "panels": [
