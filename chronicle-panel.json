@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
   "plugin": {
-    "id": "github:emyrk/chronicle-panel",
+    "id": "github:pattootse/chronicle-panel",
     "name": "Chronicle Panel Examples",
     "version": "1.6.0",
     "description": "Reference library containing multiple trusted Chronicle custom panels.",
-    "homepage": "https://github.com/Emyrk/chronicle-panel"
+    "homepage": "https://github.com/pattootse/chronicle-panel"
   },
   "host": {
     "api_version": 1
