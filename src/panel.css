@@ -150,3 +150,43 @@ header span { color: var(--muted-foreground, #a1a1aa); font-size: 11px; }
 .target { color: var(--muted-foreground, #a1a1aa); }
 .state { margin: auto; padding: 20px; color: var(--muted-foreground, #a1a1aa); text-align: center; }
 .state.error { color: #f87171; }
+
+.timeline-controls { display: flex; align-items: center; gap: 4px; }
+.timeline-controls button, .timeline-controls select {
+  height: 22px;
+  min-width: 22px;
+  padding: 0 7px;
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.timeline-controls select { max-width: 160px; background: var(--card, #111318); }
+.timeline-controls button:hover { background: color-mix(in srgb, currentColor 7%, transparent); }
+.timeline-controls [hidden] { display: none; }
+.timeline-body { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+.timeline-canvas { position: absolute; inset: 0; pointer-events: none; }
+.timeline-scroll { position: absolute; inset: 0; overflow: auto; scrollbar-width: thin; }
+.timeline-spacer { pointer-events: none; }
+.timeline-body > .state { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.timeline-body > .state[hidden] { display: none; }
+.timeline-tooltip {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-width: 280px;
+  padding: 5px 8px;
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: 6px;
+  background: var(--card, #111318);
+  box-shadow: 0 4px 14px rgb(0 0 0 / .3);
+  pointer-events: none;
+}
+.timeline-tooltip[hidden] { display: none; }
+.timeline-tooltip span { color: var(--muted-foreground, #a1a1aa); font-variant-numeric: tabular-nums; }
+.timeline-tooltip .timeline-tooltip-hint { font-size: 10px; }

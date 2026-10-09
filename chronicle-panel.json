@@ -3,7 +3,7 @@
   "plugin": {
     "id": "github:emyrk/chronicle-panel",
     "name": "Chronicle Panel Examples",
-    "version": "1.5.0",
+    "version": "1.6.0",
     "description": "Reference library containing multiple trusted Chronicle custom panels.",
     "homepage": "https://github.com/Emyrk/chronicle-panel"
   },
@@ -13,18 +13,18 @@
   "artifacts": {
     "entry": {
       "path": "dist/panel.js",
-      "sha256": "7d7f7335c4bf99259563f8b4668f46e4a461181b730f85de7cffe2faa57f8634",
-      "size": 17279
+      "sha256": "402f27cf7d46f94347b26285f22a5dbb90f17057c45094ae39bae84552795a8c",
+      "size": 37789
     },
     "worker": {
       "path": "dist/worker.js",
-      "sha256": "8616a192f06a22c4208291440f0a386b8ff6ad6e409fe3ef6018d5e24fff023c",
-      "size": 145181
+      "sha256": "cef14becf7b8969fd4ddfe567a95e1f1d5e8c6ac53382300e5dfa3551fb6d8b0",
+      "size": 149264
     },
     "styles": {
       "path": "dist/panel.css",
-      "sha256": "993a0ebe7fe05b3457421c0e81b012a92c9a3111d88074f54864deb06931930c",
-      "size": 4790
+      "sha256": "08024e9987cb77776ce61aa840a7fe260c7146301225e5305f63ecaa012ae254",
+      "size": 6558
     }
   },
   "panels": [
@@ -54,6 +54,13 @@
       "name": "Example: First Casts",
       "description": "Shows each player's first damage or heal event in every selected encounter, ordered by encounter offset.",
       "streams": ["damage", "heal"],
+      "worker": true
+    },
+    {
+      "id": "cast-timeline",
+      "name": "Example: Cast Timeline",
+      "description": "Plots each player's successful casts as a zoomable swimlane timeline so repeating rotations stand out.",
+      "streams": ["spell_go"],
       "worker": true
     }
   ]
