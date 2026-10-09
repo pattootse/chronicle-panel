@@ -58,7 +58,7 @@
     },
     {
       "id": "cast-timeline",
-      "name": "Example: Cast Timeline",
+      "name": "Cast Timeline",
       "description": "Plots each player's successful casts as a zoomable swimlane timeline so repeating rotations stand out.",
       "streams": ["spell_go"],
       "worker": true
