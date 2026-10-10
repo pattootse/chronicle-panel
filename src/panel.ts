@@ -1,5 +1,6 @@
 import { formatElapsedTime } from "./time";
 import type { CastTimelineEncounter } from "./castTimeline";
+import { CONSUME_CATEGORIES, type ConsumeRow } from "./consumes";
 import { createCastTimelineView, type CastTimelineView } from "./castTimelineView";
 import type { DamageRow } from "./damage";
 import { formatOffset, type FirstCastEncounter } from "./firstCasts";
@@ -43,6 +44,7 @@ async function mountPanel(request: ChroniclePanelMountRequestV1): Promise<Chroni
   const damageBreakouts = new Map<string, ChroniclePanelBreakoutHandleV1>();
   let gearRows: GearRarityRow[] = [];
   let gearSort = parseGearSort(snapshot.panel.option);
+  let consumeRows: ConsumeRow[] = [];
   let castRows: CastRow[] = [];
   let firstCastEncounters: FirstCastEncounter[] = [];
   let castTimeline: CastTimelineView | null = null;
@@ -57,7 +59,9 @@ async function mountPanel(request: ChroniclePanelMountRequestV1): Promise<Chroni
     ? "damage"
     : panelId === "gear-rarity"
       ? "combatant_info"
-      : "spell_go";
+      : panelId === "consumables"
+        ? "consume"
+        : "spell_go";
 
   function renderError(message: string): void {
     castTimeline?.destroy();
@@ -230,6 +234,70 @@ async function mountPanel(request: ChroniclePanelMountRequestV1): Promise<Chroni
     }
   }
 
+  function renderConsumables(): void {
+    app.innerHTML = `
+      <header>
+        <div>
+          <strong>Consumables</strong>
+          <span>${snapshot.selection.encounterIds.length} encounter(s) · ${consumeRows.length} player(s)</span>
+        </div>
+        <span class="badge">uses per player</span>
+      </header>
+      <div class="consume-table" role="table" aria-label="Consumables used by player"></div>
+    `;
+    const table = app.querySelector<HTMLDivElement>(".consume-table")!;
+    if (consumeRows.length === 0) {
+      table.innerHTML = '<div class="state">No consumable uses in the selected encounters.</div>';
+      return;
+    }
+    const header = document.createElement("div");
+    header.className = "consume-row consume-heading";
+    header.setAttribute("role", "row");
+    for (const label of ["Player", ...CONSUME_CATEGORIES.map((category) => category.label), "Total"]) {
+      const cell = document.createElement("span");
+      cell.setAttribute("role", "columnheader");
+      cell.textContent = label;
+      header.append(cell);
+    }
+    table.append(header);
+
+    for (const row of consumeRows) {
+      const item = document.createElement("div");
+      item.className = "consume-row";
+      item.setAttribute("role", "row");
+      const player = document.createElement("span");
+      player.className = "consume-player";
+      player.textContent = row.name;
+      player.title = row.heroClass || row.playerId;
+      item.append(player);
+      for (const category of CONSUME_CATEGORIES) {
+        const count = document.createElement("span");
+        count.className = `consume-count consume-${category.key}${row.counts[category.key] === 0 ? " zero" : ""}`;
+        count.textContent = String(row.counts[category.key]);
+        item.append(count);
+      }
+      const total = document.createElement("span");
+      total.className = "consume-count consume-total";
+      total.textContent = String(row.total);
+      item.append(total);
+
+      const items = document.createElement("div");
+      items.className = "consume-items";
+      for (const consumable of row.items) {
+        const chip = document.createElement("span");
+        chip.className = `consume-chip consume-${consumable.category}`;
+        chip.textContent = `${consumable.name} ×${consumable.count}`;
+        chip.title = consumable.ambiguous
+          ? `${consumable.name}: exact item could not be determined`
+          : `${row.name}: ${consumable.count} × ${consumable.name}`;
+        if (consumable.ambiguous) chip.classList.add("ambiguous");
+        items.append(chip);
+      }
+      item.append(items);
+      table.append(item);
+    }
+  }
+
   function renderCasts(): void {
     const cutoff = snapshot.sync.enabled ? snapshot.sync.timestampMs : null;
     const visible = cutoff == null ? castRows : castRows.filter((row) => row.atMs <= cutoff);
@@ -326,11 +394,22 @@ async function mountPanel(request: ChroniclePanelMountRequestV1): Promise<Chroni
     if (panelId === "damage-summary") renderDamage();
     else if (panelId === "first-casts") renderFirstCasts();
     else if (panelId === "gear-rarity") renderGear();
+    else if (panelId === "consumables") renderConsumables();
     else renderCasts();
   }
 
   worker.onmessage = (event: MessageEvent) => {
     if (destroyed) return;
+    if (event.data?.type === "consume-item-ids") {
+      const requestId = event.data.requestId as number;
+      // Names are cosmetic: on failure the worker keeps its spell-name fallbacks.
+      void api.gameData.getItemMetadata(event.data.itemIds as number[])
+        .then((items) => {
+          if (!destroyed) worker.postMessage({ type: "item-metadata", requestId, items });
+        })
+        .catch(() => {});
+      return;
+    }
     if (event.data?.type === "gear-item-ids") {
       const requestId = event.data.requestId as number;
       void api.gameData.getItemMetadata(event.data.itemIds as number[])
@@ -351,6 +430,7 @@ async function mountPanel(request: ChroniclePanelMountRequestV1): Promise<Chroni
       return;
     }
     if (event.data?.type === "casts-result") castRows = event.data.rows as CastRow[];
+    if (event.data?.type === "consumables-result") consumeRows = event.data.rows as ConsumeRow[];
     if (event.data?.type === "gear-rarity-result") gearRows = event.data.rows as GearRarityRow[];
     render();
   };
@@ -397,7 +477,8 @@ async function mountPanel(request: ChroniclePanelMountRequestV1): Promise<Chroni
       if (panelId === "gear-rarity") {
         gearSort = parseGearSort(next.panel.option);
         renderGear();
-      } else if (panelId === "replay-casts") renderCasts();
+      } else if (panelId === "consumables") renderConsumables();
+      else if (panelId === "replay-casts") renderCasts();
       else if (panelId === "first-casts") renderFirstCasts();
       else if (panelId === "cast-timeline") castTimeline?.setSnapshot(next);
     },

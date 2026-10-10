@@ -5,6 +5,90 @@ function formatElapsedTime(elapsedMs) {
   return `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, "0")}`;
 }
 
+// node_modules/.pnpm/@emyrk+chronicle-panel-sdk@0.2.0_@bufbuild+protobuf@2.16.0/node_modules/@emyrk/chronicle-panel-sdk/dist/v1/protobuf/chronicle_pb.js
+var School;
+(function(School2) {
+  School2[School2["Unknown"] = 0] = "Unknown";
+  School2[School2["None"] = 1] = "None";
+  School2[School2["Physical"] = 2] = "Physical";
+  School2[School2["Holy"] = 3] = "Holy";
+  School2[School2["Fire"] = 4] = "Fire";
+  School2[School2["Nature"] = 5] = "Nature";
+  School2[School2["Frost"] = 6] = "Frost";
+  School2[School2["Shadow"] = 7] = "Shadow";
+  School2[School2["Arcane"] = 8] = "Arcane";
+})(School || (School = {}));
+var CastAction;
+(function(CastAction2) {
+  CastAction2[CastAction2["ActionUnknown"] = 0] = "ActionUnknown";
+  CastAction2[CastAction2["ActionCasts"] = 1] = "ActionCasts";
+  CastAction2[CastAction2["ActionBeginsToCast"] = 2] = "ActionBeginsToCast";
+  CastAction2[CastAction2["ActionChannels"] = 3] = "ActionChannels";
+  CastAction2[CastAction2["ActionFailsCasting"] = 4] = "ActionFailsCasting";
+})(CastAction || (CastAction = {}));
+var AuraApplication;
+(function(AuraApplication2) {
+  AuraApplication2[AuraApplication2["ApplicationUnknown"] = 0] = "ApplicationUnknown";
+  AuraApplication2[AuraApplication2["ApplicationGains"] = 1] = "ApplicationGains";
+  AuraApplication2[AuraApplication2["ApplicationFades"] = 2] = "ApplicationFades";
+  AuraApplication2[AuraApplication2["ApplicationRemoved"] = 3] = "ApplicationRemoved";
+})(AuraApplication || (AuraApplication = {}));
+var AuraState;
+(function(AuraState2) {
+  AuraState2[AuraState2["StateUnknown"] = 0] = "StateUnknown";
+  AuraState2[AuraState2["StateAdded"] = 1] = "StateAdded";
+  AuraState2[AuraState2["StateRemoved"] = 2] = "StateRemoved";
+  AuraState2[AuraState2["StateModified"] = 3] = "StateModified";
+})(AuraState || (AuraState = {}));
+var AuraTransition;
+(function(AuraTransition2) {
+  AuraTransition2[AuraTransition2["TransitionUnknown"] = 0] = "TransitionUnknown";
+  AuraTransition2[AuraTransition2["TransitionApplied"] = 1] = "TransitionApplied";
+  AuraTransition2[AuraTransition2["TransitionRefreshed"] = 2] = "TransitionRefreshed";
+  AuraTransition2[AuraTransition2["TransitionStackChanged"] = 3] = "TransitionStackChanged";
+  AuraTransition2[AuraTransition2["TransitionRemoved"] = 4] = "TransitionRemoved";
+})(AuraTransition || (AuraTransition = {}));
+var DispelType;
+(function(DispelType2) {
+  DispelType2[DispelType2["DispelTypeNone"] = 0] = "DispelTypeNone";
+  DispelType2[DispelType2["DispelTypeMagic"] = 1] = "DispelTypeMagic";
+  DispelType2[DispelType2["DispelTypeCurse"] = 2] = "DispelTypeCurse";
+  DispelType2[DispelType2["DispelTypeDisease"] = 3] = "DispelTypeDisease";
+  DispelType2[DispelType2["DispelTypePoison"] = 4] = "DispelTypePoison";
+  DispelType2[DispelType2["DispelTypeStealth"] = 5] = "DispelTypeStealth";
+  DispelType2[DispelType2["DispelTypeInvisibility"] = 6] = "DispelTypeInvisibility";
+})(DispelType || (DispelType = {}));
+var EvidenceKind;
+(function(EvidenceKind2) {
+  EvidenceKind2[EvidenceKind2["EvidenceUnknown"] = 0] = "EvidenceUnknown";
+  EvidenceKind2[EvidenceKind2["EvidenceDirectItem"] = 1] = "EvidenceDirectItem";
+  EvidenceKind2[EvidenceKind2["EvidenceCast"] = 2] = "EvidenceCast";
+  EvidenceKind2[EvidenceKind2["EvidenceAura"] = 3] = "EvidenceAura";
+  EvidenceKind2[EvidenceKind2["EvidenceHeal"] = 4] = "EvidenceHeal";
+  EvidenceKind2[EvidenceKind2["EvidenceResource"] = 5] = "EvidenceResource";
+  EvidenceKind2[EvidenceKind2["EvidenceDamage"] = 6] = "EvidenceDamage";
+  EvidenceKind2[EvidenceKind2["EvidenceActiveAtPull"] = 7] = "EvidenceActiveAtPull";
+  EvidenceKind2[EvidenceKind2["EvidenceCooldown"] = 8] = "EvidenceCooldown";
+  EvidenceKind2[EvidenceKind2["EvidencePreCombat"] = 9] = "EvidencePreCombat";
+})(EvidenceKind || (EvidenceKind = {}));
+var EvidenceConfidence;
+(function(EvidenceConfidence2) {
+  EvidenceConfidence2[EvidenceConfidence2["ConfidenceUnknown"] = 0] = "ConfidenceUnknown";
+  EvidenceConfidence2[EvidenceConfidence2["ConfidenceDirect"] = 1] = "ConfidenceDirect";
+  EvidenceConfidence2[EvidenceConfidence2["ConfidenceEffectDerived"] = 2] = "ConfidenceEffectDerived";
+  EvidenceConfidence2[EvidenceConfidence2["ConfidenceAmbiguous"] = 3] = "ConfidenceAmbiguous";
+  EvidenceConfidence2[EvidenceConfidence2["ConfidenceInferred"] = 4] = "ConfidenceInferred";
+})(EvidenceConfidence || (EvidenceConfidence = {}));
+
+// src/consumes.ts
+var CONSUME_CATEGORIES = [
+  { key: "flask", label: "Flasks" },
+  { key: "potion", label: "Potions" },
+  { key: "elixir", label: "Elixirs" },
+  { key: "other", label: "Other" }
+];
+var CATEGORY_ORDER = new Map(CONSUME_CATEGORIES.map((category, index) => [category.key, index]));
+
 // src/castTimeline.ts
 function lowerBound(values, target) {
   let low = 0;
@@ -528,6 +612,7 @@ async function mountPanel(request) {
   const damageBreakouts = /* @__PURE__ */ new Map();
   let gearRows = [];
   let gearSort = parseGearSort(snapshot.panel.option);
+  let consumeRows = [];
   let castRows = [];
   let firstCastEncounters = [];
   let castTimeline = null;
@@ -536,7 +621,7 @@ async function mountPanel(request) {
   app.className = "chronicle-example";
   root.append(app);
   const worker = api.workers.create();
-  const streamType = panelId === "damage-summary" || panelId === "first-casts" ? "damage" : panelId === "gear-rarity" ? "combatant_info" : "spell_go";
+  const streamType = panelId === "damage-summary" || panelId === "first-casts" ? "damage" : panelId === "gear-rarity" ? "combatant_info" : panelId === "consumables" ? "consume" : "spell_go";
   function renderError(message) {
     castTimeline?.destroy();
     castTimeline = null;
@@ -697,6 +782,65 @@ async function mountPanel(request) {
       table.append(item);
     }
   }
+  function renderConsumables() {
+    app.innerHTML = `
+      <header>
+        <div>
+          <strong>Consumables</strong>
+          <span>${snapshot.selection.encounterIds.length} encounter(s) \xB7 ${consumeRows.length} player(s)</span>
+        </div>
+        <span class="badge">uses per player</span>
+      </header>
+      <div class="consume-table" role="table" aria-label="Consumables used by player"></div>
+    `;
+    const table = app.querySelector(".consume-table");
+    if (consumeRows.length === 0) {
+      table.innerHTML = '<div class="state">No consumable uses in the selected encounters.</div>';
+      return;
+    }
+    const header = document.createElement("div");
+    header.className = "consume-row consume-heading";
+    header.setAttribute("role", "row");
+    for (const label of ["Player", ...CONSUME_CATEGORIES.map((category) => category.label), "Total"]) {
+      const cell = document.createElement("span");
+      cell.setAttribute("role", "columnheader");
+      cell.textContent = label;
+      header.append(cell);
+    }
+    table.append(header);
+    for (const row of consumeRows) {
+      const item = document.createElement("div");
+      item.className = "consume-row";
+      item.setAttribute("role", "row");
+      const player = document.createElement("span");
+      player.className = "consume-player";
+      player.textContent = row.name;
+      player.title = row.heroClass || row.playerId;
+      item.append(player);
+      for (const category of CONSUME_CATEGORIES) {
+        const count = document.createElement("span");
+        count.className = `consume-count consume-${category.key}${row.counts[category.key] === 0 ? " zero" : ""}`;
+        count.textContent = String(row.counts[category.key]);
+        item.append(count);
+      }
+      const total = document.createElement("span");
+      total.className = "consume-count consume-total";
+      total.textContent = String(row.total);
+      item.append(total);
+      const items = document.createElement("div");
+      items.className = "consume-items";
+      for (const consumable of row.items) {
+        const chip = document.createElement("span");
+        chip.className = `consume-chip consume-${consumable.category}`;
+        chip.textContent = `${consumable.name} \xD7${consumable.count}`;
+        chip.title = consumable.ambiguous ? `${consumable.name}: exact item could not be determined` : `${row.name}: ${consumable.count} \xD7 ${consumable.name}`;
+        if (consumable.ambiguous) chip.classList.add("ambiguous");
+        items.append(chip);
+      }
+      item.append(items);
+      table.append(item);
+    }
+  }
   function renderCasts() {
     const cutoff = snapshot.sync.enabled ? snapshot.sync.timestampMs : null;
     const visible = cutoff == null ? castRows : castRows.filter((row) => row.atMs <= cutoff);
@@ -787,10 +931,19 @@ async function mountPanel(request) {
     if (panelId === "damage-summary") renderDamage();
     else if (panelId === "first-casts") renderFirstCasts();
     else if (panelId === "gear-rarity") renderGear();
+    else if (panelId === "consumables") renderConsumables();
     else renderCasts();
   }
   worker.onmessage = (event) => {
     if (destroyed) return;
+    if (event.data?.type === "consume-item-ids") {
+      const requestId = event.data.requestId;
+      void api.gameData.getItemMetadata(event.data.itemIds).then((items) => {
+        if (!destroyed) worker.postMessage({ type: "item-metadata", requestId, items });
+      }).catch(() => {
+      });
+      return;
+    }
     if (event.data?.type === "gear-item-ids") {
       const requestId = event.data.requestId;
       void api.gameData.getItemMetadata(event.data.itemIds).then((items) => {
@@ -809,6 +962,7 @@ async function mountPanel(request) {
       return;
     }
     if (event.data?.type === "casts-result") castRows = event.data.rows;
+    if (event.data?.type === "consumables-result") consumeRows = event.data.rows;
     if (event.data?.type === "gear-rarity-result") gearRows = event.data.rows;
     render();
   };
@@ -854,7 +1008,8 @@ async function mountPanel(request) {
       if (panelId === "gear-rarity") {
         gearSort = parseGearSort(next.panel.option);
         renderGear();
-      } else if (panelId === "replay-casts") renderCasts();
+      } else if (panelId === "consumables") renderConsumables();
+      else if (panelId === "replay-casts") renderCasts();
       else if (panelId === "first-casts") renderFirstCasts();
       else if (panelId === "cast-timeline") castTimeline?.setSnapshot(next);
     },

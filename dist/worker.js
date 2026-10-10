@@ -2720,6 +2720,7 @@ var DamageSchema = /* @__PURE__ */ messageDesc2(file_chronicle, 5);
 var SpellGoSchema = /* @__PURE__ */ messageDesc2(file_chronicle, 16);
 var UnitClassificationSchema = /* @__PURE__ */ messageDesc2(file_chronicle, 19);
 var CombatantInfoSchema = /* @__PURE__ */ messageDesc2(file_chronicle, 21);
+var ConsumeSchema = /* @__PURE__ */ messageDesc2(file_chronicle, 24);
 var School;
 (function(School2) {
   School2[School2["Unknown"] = 0] = "Unknown";
@@ -2930,6 +2931,127 @@ var DamageAccumulator = class {
   }
 };
 
+// src/consumes.ts
+var CONSUME_CATEGORIES = [
+  { key: "flask", label: "Flasks" },
+  { key: "potion", label: "Potions" },
+  { key: "elixir", label: "Elixirs" },
+  { key: "other", label: "Other" }
+];
+function confidenceRank(confidence) {
+  return confidence === EvidenceConfidence.ConfidenceUnknown ? 99 : confidence;
+}
+function evidenceRank(use) {
+  return (use.itemId == null ? 200 : 0) + (use.itemName ? 0 : 100) + confidenceRank(use.confidence);
+}
+function collectConsumeUses(payloads) {
+  const uses = /* @__PURE__ */ new Map();
+  for (const payload of payloads) {
+    for (const event of payload.events) {
+      const consumeId = event.consumeId || event.evidenceId;
+      if (!consumeId || !event.player) continue;
+      const itemId = event.itemId && event.itemId > 0 ? event.itemId : null;
+      const candidate = {
+        consumeId,
+        encounterIds: [payload.encounterId],
+        player: event.player,
+        itemId,
+        itemName: itemId != null && event.itemName ? event.itemName : null,
+        candidateItemIds: event.candidateItemIds.filter((id) => id > 0),
+        spellId: event.spellData?.id || null,
+        spellName: event.spellData?.name || null,
+        confidence: event.confidence
+      };
+      const previous = uses.get(consumeId);
+      if (!previous) {
+        uses.set(consumeId, candidate);
+        continue;
+      }
+      if (!previous.encounterIds.includes(payload.encounterId)) previous.encounterIds.push(payload.encounterId);
+      const [best, other] = evidenceRank(candidate) < evidenceRank(previous) ? [candidate, previous] : [previous, candidate];
+      uses.set(consumeId, {
+        ...best,
+        encounterIds: previous.encounterIds,
+        spellId: best.spellId ?? other.spellId,
+        spellName: best.spellName ?? other.spellName,
+        candidateItemIds: best.candidateItemIds.length > 0 ? best.candidateItemIds : other.candidateItemIds
+      });
+    }
+  }
+  return [...uses.values()];
+}
+function consumeItemIdsNeedingNames(uses) {
+  const ids = /* @__PURE__ */ new Set();
+  for (const use of uses) {
+    if (use.itemId != null) {
+      if (!use.itemName) ids.add(use.itemId);
+    } else {
+      for (const id of use.candidateItemIds) ids.add(id);
+    }
+  }
+  return [...ids].sort((a, b) => a - b);
+}
+function categorizeConsumable(name) {
+  if (/\bflask\b/i.test(name)) return "flask";
+  if (/\bpotion\b/i.test(name)) return "potion";
+  if (/\belixir\b/i.test(name)) return "elixir";
+  return "other";
+}
+function resolveItem(use, itemNames) {
+  if (use.itemId != null) {
+    const name2 = use.itemName ?? itemNames.get(use.itemId) ?? use.spellName ?? `Item ${use.itemId}`;
+    return { key: `item:${use.itemId}`, name: name2, category: categorizeConsumable(name2), ambiguous: false };
+  }
+  const candidateNames = [...new Set(use.candidateItemIds.map((id) => itemNames.get(id)).filter((name2) => !!name2))];
+  if (candidateNames.length === 1) {
+    const [name2] = candidateNames;
+    return { key: `name:${name2}`, name: name2, category: categorizeConsumable(name2), ambiguous: false };
+  }
+  const name = use.spellName ?? (use.spellId ? `Spell ${use.spellId}` : "Unknown consumable");
+  const categories = new Set(candidateNames.map(categorizeConsumable));
+  const category = categories.size === 1 ? [...categories][0] : categorizeConsumable(name);
+  return {
+    key: use.spellId ? `spell:${use.spellId}` : `name:${name}`,
+    name,
+    category,
+    ambiguous: candidateNames.length > 1 || use.candidateItemIds.length > 1
+  };
+}
+var CATEGORY_ORDER = new Map(CONSUME_CATEGORIES.map((category, index) => [category.key, index]));
+function buildConsumeRows(uses, selectedEncounterIds, itemNames, players) {
+  const rows = /* @__PURE__ */ new Map();
+  for (const use of uses) {
+    if (!use.encounterIds.some((id) => selectedEncounterIds.has(id))) continue;
+    let row = rows.get(use.player);
+    if (!row) {
+      const player = players[use.player];
+      row = {
+        playerId: use.player,
+        name: player?.name ?? use.player,
+        heroClass: player?.class_name ?? player?.class ?? "",
+        total: 0,
+        counts: { flask: 0, potion: 0, elixir: 0, other: 0 },
+        items: [],
+        byKey: /* @__PURE__ */ new Map()
+      };
+      rows.set(use.player, row);
+    }
+    const resolved = resolveItem(use, itemNames);
+    let item = row.byKey.get(resolved.key);
+    if (!item) {
+      item = { ...resolved, count: 0 };
+      row.byKey.set(resolved.key, item);
+    }
+    item.count += 1;
+    row.counts[item.category] += 1;
+    row.total += 1;
+  }
+  return [...rows.values()].map(({ byKey, ...row }) => ({
+    ...row,
+    items: [...byKey.values()].sort((a, b) => CATEGORY_ORDER.get(a.category) - CATEGORY_ORDER.get(b.category) || b.count - a.count || a.name.localeCompare(b.name))
+  })).sort((a, b) => b.total - a.total || a.name.localeCompare(b.name) || a.playerId.localeCompare(b.playerId));
+}
+
 // src/castTimeline.ts
 function spellFor(cast) {
   const id = cast.spellData?.id || null;
@@ -3134,6 +3256,10 @@ var gearPayloads = [];
 var gearPlayers = [];
 var gearRequestId = 0;
 var gearSelectionKey = "";
+var consumeUses = [];
+var consumePlayers = {};
+var consumeItemNames = /* @__PURE__ */ new Map();
+var consumeRequestId = 0;
 function requestGearMetadata(force = false) {
   const selectionKey = [...selected].sort().join("\0");
   if (!force && selectionKey === gearSelectionKey) return;
@@ -3154,6 +3280,13 @@ function publish() {
     return;
   }
   if (panelId === "gear-rarity") return;
+  if (panelId === "consumables") {
+    self.postMessage({
+      type: "consumables-result",
+      rows: buildConsumeRows(consumeUses, selected, consumeItemNames, consumePlayers)
+    });
+    return;
+  }
   if (panelId === "first-casts") {
     self.postMessage({
       type: "first-casts-result",
@@ -3180,6 +3313,12 @@ self.onmessage = (event) => {
     return;
   }
   if (message.type === "item-metadata") {
+    if (panelId === "consumables") {
+      if (message.requestId !== consumeRequestId) return;
+      for (const item of message.items) if (item.name) consumeItemNames.set(item.entry, item.name);
+      publish();
+      return;
+    }
     if (message.requestId === gearRequestId) {
       self.postMessage({ type: "gear-rarity-result", rows: buildGearRarityRows(gearPlayers, message.items) });
     }
@@ -3190,7 +3329,9 @@ self.onmessage = (event) => {
     selected = new Set(message.selectedEncounterIds);
     sync = message.sync;
     if (panelId === "gear-rarity") requestGearMetadata();
-    else if (panelId === "first-casts" || panelId === "cast-timeline") {
+    else if (panelId === "consumables") {
+      if (selectionChanged) publish();
+    } else if (panelId === "first-casts" || panelId === "cast-timeline") {
       if (selectionChanged) publish();
     } else publish();
     return;
@@ -3204,6 +3345,14 @@ self.onmessage = (event) => {
       message.healData ? decodeEncounterPayloads(HealSchema, message.healData) : [],
       message.players
     );
+  } else if (panelId === "consumables") {
+    consumeUses = collectConsumeUses(decodeEncounterPayloads(ConsumeSchema, message.data));
+    consumePlayers = message.players;
+    const itemIds = consumeItemIdsNeedingNames(consumeUses);
+    if (itemIds.length > 0) {
+      consumeRequestId += 1;
+      self.postMessage({ type: "consume-item-ids", requestId: consumeRequestId, itemIds });
+    }
   } else if (panelId === "cast-timeline") {
     castTimelines = buildCastTimelines(decodeEncounterPayloads(SpellGoSchema, message.data), message.players);
   } else if (message.streamType === "damage") {

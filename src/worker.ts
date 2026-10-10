@@ -1,8 +1,9 @@
 /// <reference lib="webworker" />
 
 import { decodeEncounterPayloads, type EncounterPayload } from "@emyrk/chronicle-panel-sdk/v1/events";
-import { CombatantInfoSchema, DamageSchema, HealSchema, SpellGoSchema, UnitClassificationSchema, type CombatantInfo } from "@emyrk/chronicle-panel-sdk/v1/protobuf";
+import { CombatantInfoSchema, ConsumeSchema, DamageSchema, HealSchema, SpellGoSchema, UnitClassificationSchema, type CombatantInfo } from "@emyrk/chronicle-panel-sdk/v1/protobuf";
 import { DamageAccumulator, resolveDamageEvents, type DamageRow, type ResolvedDamageEvent } from "./damage";
+import { buildConsumeRows, collectConsumeUses, consumeItemIdsNeedingNames, type ConsumeUse } from "./consumes";
 import { buildCastTimelines, type CastTimelineEncounter, type CastTimelinePlayer } from "./castTimeline";
 import { buildFirstCasts, type FirstCastEncounter } from "./firstCasts";
 import { buildGearRarityRows, latestGearForSelectedEncounters, uniqueGearItemIds, type GearPlayerSnapshot } from "./gearRarity";
@@ -10,7 +11,7 @@ import { buildGearRarityRows, latestGearForSelectedEncounters, uniqueGearItemIds
 interface InitMessage {
   type: "init";
   panelId: string;
-  streamType: "damage" | "spell_go" | "combatant_info";
+  streamType: "damage" | "spell_go" | "combatant_info" | "consume";
   data: ArrayBuffer;
   classificationData?: ArrayBuffer;
   healData?: ArrayBuffer;
@@ -29,7 +30,7 @@ interface UpdateMessage {
 interface ItemMetadataMessage {
   type: "item-metadata";
   requestId: number;
-  items: Array<{ entry: number; quality: number }>;
+  items: Array<{ entry: number; name: string; quality: number }>;
 }
 
 type WorkerRequest = InitMessage | UpdateMessage | ItemMetadataMessage | { type: "dispose" };
@@ -56,6 +57,10 @@ let gearPayloads: EncounterPayload<CombatantInfo>[] = [];
 let gearPlayers: GearPlayerSnapshot[] = [];
 let gearRequestId = 0;
 let gearSelectionKey = "";
+let consumeUses: ConsumeUse[] = [];
+let consumePlayers: InitMessage["players"] = {};
+let consumeItemNames = new Map<number, string>();
+let consumeRequestId = 0;
 
 function requestGearMetadata(force = false): void {
   const selectionKey = [...selected].sort().join("\0");
@@ -79,6 +84,14 @@ function publish(): void {
   }
 
   if (panelId === "gear-rarity") return;
+
+  if (panelId === "consumables") {
+    self.postMessage({
+      type: "consumables-result",
+      rows: buildConsumeRows(consumeUses, selected, consumeItemNames, consumePlayers),
+    });
+    return;
+  }
 
   if (panelId === "first-casts") {
     self.postMessage({
@@ -109,6 +122,12 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
     return;
   }
   if (message.type === "item-metadata") {
+    if (panelId === "consumables") {
+      if (message.requestId !== consumeRequestId) return;
+      for (const item of message.items) if (item.name) consumeItemNames.set(item.entry, item.name);
+      publish();
+      return;
+    }
     if (message.requestId === gearRequestId) {
       self.postMessage({ type: "gear-rarity-result", rows: buildGearRarityRows(gearPlayers, message.items) });
     }
@@ -120,6 +139,10 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
     selected = new Set(message.selectedEncounterIds);
     sync = message.sync;
     if (panelId === "gear-rarity") requestGearMetadata();
+    // Consumables ignore replay time; only a selection change alters the counts.
+    else if (panelId === "consumables") {
+      if (selectionChanged) publish();
+    }
     // First casts and cast timelines ignore replay time; the views dim casts past the cursor.
     else if (panelId === "first-casts" || panelId === "cast-timeline") {
       if (selectionChanged) publish();
@@ -138,6 +161,15 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
       message.healData ? decodeEncounterPayloads(HealSchema, message.healData) : [],
       message.players,
     );
+  } else if (panelId === "consumables") {
+    consumeUses = collectConsumeUses(decodeEncounterPayloads(ConsumeSchema, message.data));
+    consumePlayers = message.players;
+    // Names are global, so resolve every unnamed item once rather than per selection.
+    const itemIds = consumeItemIdsNeedingNames(consumeUses);
+    if (itemIds.length > 0) {
+      consumeRequestId += 1;
+      self.postMessage({ type: "consume-item-ids", requestId: consumeRequestId, itemIds });
+    }
   } else if (panelId === "cast-timeline") {
     castTimelines = buildCastTimelines(decodeEncounterPayloads(SpellGoSchema, message.data), message.players);
   } else if (message.streamType === "damage") {

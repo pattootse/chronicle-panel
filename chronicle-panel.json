@@ -13,18 +13,18 @@
   "artifacts": {
     "entry": {
       "path": "dist/panel.js",
-      "sha256": "402f27cf7d46f94347b26285f22a5dbb90f17057c45094ae39bae84552795a8c",
-      "size": 37789
+      "sha256": "ea9bd4d4947ef8dbe44a6411b5280101a5fa0dfdde64de66c98fa8c4d27b5601",
+      "size": 45626
     },
     "worker": {
       "path": "dist/worker.js",
-      "sha256": "cef14becf7b8969fd4ddfe567a95e1f1d5e8c6ac53382300e5dfa3551fb6d8b0",
-      "size": 149264
+      "sha256": "311fa58cba0a3655f0df3e91b31a29d59a4f99f40ae26a4c82172cf71f8f0418",
+      "size": 155240
     },
     "styles": {
       "path": "dist/panel.css",
-      "sha256": "1cb1f736be82a4fb7d9f37ed73ccd8162bf254aa2fa5873a59e1ca256397ce46",
-      "size": 6406
+      "sha256": "97a2e28ffb78304d93163c947b0a799bece77899b73ffc3248bbbed2404f3565",
+      "size": 7875
     }
   },
   "panels": [
@@ -61,6 +61,13 @@
       "name": "Cast Timeline",
       "description": "Plots each player's successful casts as a zoomable swimlane timeline so repeating rotations stand out.",
       "streams": ["spell_go"],
+      "worker": true
+    },
+    {
+      "id": "consumables",
+      "name": "Consumables",
+      "description": "Counts each player's flasks, potions, elixirs, and other consumables across the selected encounters.",
+      "streams": ["consume"],
       "worker": true
     }
   ]
